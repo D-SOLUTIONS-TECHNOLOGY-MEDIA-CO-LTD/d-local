@@ -1,7 +1,7 @@
 # D-Local
 
 <p align="center">
-  <img src="resources/icon.png" alt="D-Local Logo" width="128" height="128">
+  <img src="resources/icon.icns" alt="D-Local Logo" width="128" height="128">
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/github/v/release/d-solutions-vn/d-local" alt="Release">
+  <img src="https://img.shields.io/github/v/release/D-SOLUTIONS-TECHNOLOGY-MEDIA-CO-LTD/d-local" alt="Release">
 </p>
 
 ---
@@ -73,7 +73,7 @@ Follows macOS design guidelines. Supports light/dark mode.
 
 ### Download
 
-Download the latest release from [GitHub Releases](https://github.com/d-solutions-vn/d-local/releases).
+Download the latest release from [GitHub Releases](https://github.com/D-SOLUTIONS-TECHNOLOGY-MEDIA-CO-LTD/d-local/releases).
 
 ### Using Homebrew (coming soon)
 
@@ -85,7 +85,7 @@ brew install --cask d-local
 
 ```bash
 # Clone the repository
-git clone https://github.com/d-solutions-vn/d-local.git
+git clone https://github.com/D-SOLUTIONS-TECHNOLOGY-MEDIA-CO-LTD/d-local.git
 cd d-local
 
 # Install dependencies

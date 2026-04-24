@@ -13,6 +13,7 @@ pnpm install          # Install dependencies
 pnpm dev              # Start dev with hot reload (electron-vite)
 pnpm build            # Build for production
 pnpm package          # Build + create distributable (electron-builder)
+pnpm package:mac      # Build macOS .dmg + .zip (universal binary)
 pnpm lint             # ESLint (.ts, .tsx)
 pnpm lint:fix         # ESLint with auto-fix
 pnpm typecheck        # Full type check (all tsconfigs)
@@ -72,3 +73,10 @@ The `Domain` interface is duplicated in `src/main/services/domains.ts` and `src/
 - **electron-store** — persists domains and config as JSON files in the app's userData directory.
 - **Radix UI** — used for dialog, dropdown, select, switch, tabs, toast, tooltip primitives.
 - **lucide-react** — icon library.
+
+## Packaging Notes
+
+- `electron-store` and `uuid` must NOT be externalized — they are bundled into `out/main/index.js` via `externalizeDepsPlugin({ exclude: [...] })` in `electron.vite.config.ts`.
+- `build/afterPack.js` runs `xattr -cr` on the `.app` bundle to strip resource forks before codesign.
+- macOS build outputs universal binaries (Intel + Apple Silicon) to `dist/`.
+- Code signing requires an Apple Developer certificate; set `CSC_IDENTITY_AUTO_DISCOVERY=false` to build unsigned.

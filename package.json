@@ -8,13 +8,13 @@
     "email": "lienhe@d-solutions.vn",
     "url": "https://d-solutions.vn"
   },
-  "homepage": "https://github.com/d-solutions-vn/d-local",
+  "homepage": "https://github.com/D-SOLUTIONS-TECHNOLOGY-MEDIA-CO-LTD/d-local",
   "repository": {
     "type": "git",
-    "url": "https://github.com/d-solutions-vn/d-local.git"
+    "url": "https://github.com/D-SOLUTIONS-TECHNOLOGY-MEDIA-CO-LTD/d-local.git"
   },
   "bugs": {
-    "url": "https://github.com/d-solutions-vn/d-local/issues"
+    "url": "https://github.com/D-SOLUTIONS-TECHNOLOGY-MEDIA-CO-LTD/d-local/issues"
   },
   "license": "MIT",
   "scripts": {
