@@ -10,6 +10,8 @@ export interface Domain {
   env?: Record<string, string>
   autoStart: boolean
   openBrowserOnStart: boolean
+  tailscaleServe?: boolean
+  tailscalePort?: number
   isRunning?: boolean
   pid?: number
   createdAt: Date

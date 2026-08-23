@@ -14,6 +14,7 @@ export interface AppConfig {
   claudeCodePath: string
   watchFolders: string[]
   caddyPath: string
+  httpPort: number
 }
 
 interface ConfigState {

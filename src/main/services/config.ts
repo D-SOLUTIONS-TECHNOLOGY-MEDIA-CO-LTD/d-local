@@ -17,6 +17,10 @@ export interface AppConfig {
   claudeCodePath: string
   watchFolders: string[]
   caddyPath: string
+  // HTTP port Caddy serves domains on. Defaults to 80 for clean URLs
+  // (http://name.local). Configurable so users whose port 80 is occupied can
+  // move it (e.g. 8080) without editing the Caddyfile by hand.
+  httpPort: number
 }
 
 export interface ExportData {
@@ -39,7 +43,8 @@ const defaultConfig: AppConfig = {
   },
   claudeCodePath: '/usr/local/bin/claude',
   watchFolders: [],
-  caddyPath: '/opt/homebrew/bin/caddy'
+  caddyPath: '/opt/homebrew/bin/caddy',
+  httpPort: 80
 }
 
 const store = new Store<{ config: AppConfig }>({

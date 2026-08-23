@@ -94,6 +94,46 @@ export async function getHostEntries(): Promise<string[]> {
     .map(line => line.replace('127.0.0.1 ', ''))
 }
 
+/**
+ * Ensure the managed block contains exactly the given domains. Used by "Repair"
+ * to reconcile /etc/hosts in one pass. No-ops (no sudo prompt) when the block is
+ * already correct.
+ */
+export async function syncAllHosts(domains: string[]): Promise<void> {
+  const content = await readFile(HOSTS_PATH, 'utf-8')
+  const desiredBody = domains.map(d => `127.0.0.1 ${d}`).join('\n')
+
+  const startIndex = content.indexOf(START_MARKER)
+  const endIndex = content.indexOf(END_MARKER)
+
+  // Compare current managed body with desired; skip write if identical.
+  if (startIndex !== -1 && endIndex !== -1) {
+    const currentBody = content
+      .substring(startIndex + START_MARKER.length, endIndex)
+      .trim()
+    if (currentBody === desiredBody.trim()) {
+      return
+    }
+  }
+
+  const block = domains.length
+    ? `${START_MARKER}\n${desiredBody}\n${END_MARKER}\n`
+    : ''
+
+  let newContent: string
+  if (startIndex !== -1 && endIndex !== -1) {
+    newContent = content.substring(0, startIndex)
+      + block
+      + content.substring(endIndex + END_MARKER.length).replace(/^\n/, '')
+  } else if (block) {
+    newContent = content.trimEnd() + '\n\n' + block
+  } else {
+    return
+  }
+
+  await writeHostsWithSudo(newContent)
+}
+
 async function writeHostsWithSudo(content: string): Promise<void> {
   // Create a temp file
   const tempFile = `/tmp/hosts-${Date.now()}`
