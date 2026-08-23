@@ -6,6 +6,8 @@ import { join } from 'path'
 import { homedir } from 'os'
 import { Domain } from './domains'
 import { findCaddyPath, downloadCaddy } from './caddy-installer'
+import { getConfig } from './config'
+import { getPortOwner, PortOwner } from './ports'
 
 const execAsync = promisify(exec)
 
@@ -13,6 +15,27 @@ const CADDY_CONFIG_DIR = join(homedir(), '.config', 'd-local')
 const CADDY_CONFIG_PATH = join(CADDY_CONFIG_DIR, 'Caddyfile')
 
 let resolvedCaddyPath: string | null = null
+
+// Last user-facing error from a start/reload attempt, surfaced in the UI so
+// failures (e.g. a port conflict) are visible instead of silently swallowed.
+let lastError: string | null = null
+
+function getHttpPort(): number {
+  const port = getConfig().httpPort
+  return typeof port === 'number' && port > 0 ? port : 80
+}
+
+/**
+ * Extract the human-readable reason from a caddy CLI error. Caddy prints
+ * structured JSON logs plus a trailing `Error: ...` line; surface the latter.
+ */
+function parseCaddyError(err: unknown): string {
+  const raw = (err as { stderr?: string; message?: string })?.stderr
+    || (err as Error)?.message
+    || String(err)
+  const match = raw.match(/Error:\s*(.+)/)
+  return (match ? match[1] : raw).split('\n')[0].trim()
+}
 
 async function getCaddyBin(): Promise<string | null> {
   if (resolvedCaddyPath) return resolvedCaddyPath
@@ -26,12 +49,20 @@ export interface CaddyStatus {
   isDownloading?: boolean
   pid?: number
   version?: string
+  httpPort: number
+  // Last start/reload error, if any (e.g. port already in use).
+  lastError?: string | null
+  // Set when the HTTP port is held by a process that is not our caddy.
+  portConflict?: PortOwner | null
 }
 
 export async function getCaddyStatus(): Promise<CaddyStatus> {
+  const httpPort = getHttpPort()
   const status: CaddyStatus = {
     isRunning: false,
-    isInstalled: false
+    isInstalled: false,
+    httpPort,
+    lastError
   }
 
   const caddyBin = await getCaddyBin()
@@ -53,6 +84,14 @@ export async function getCaddyStatus(): Promise<CaddyStatus> {
     }
   } catch {
     // Not running
+  }
+
+  // Flag the case where something else holds our HTTP port (Caddy can't bind it).
+  if (!status.isRunning) {
+    const owner = await getPortOwner(httpPort)
+    if (owner && owner.command !== 'caddy') {
+      status.portConflict = owner
+    }
   }
 
   return status
@@ -87,12 +126,25 @@ export async function startCaddy(): Promise<boolean> {
     await writeFile(CADDY_CONFIG_PATH, '# D-Local Caddyfile\n')
   }
 
+  // Pre-flight: if the HTTP port is already held by another process, fail with a
+  // clear reason instead of letting caddy die with a cryptic bind error.
+  const httpPort = getHttpPort()
+  const owner = await getPortOwner(httpPort)
+  if (owner && owner.command !== 'caddy') {
+    lastError = `Port ${httpPort} is in use by ${owner.command} (pid ${owner.pid}). `
+      + `Stop it or change the HTTP port in Settings.`
+    console.error('Error starting Caddy:', lastError)
+    return false
+  }
+
   try {
     await execAsync(
       `"${bin}" start --config "${CADDY_CONFIG_PATH}" --adapter caddyfile`
     )
+    lastError = null
     return true
   } catch (error) {
+    lastError = parseCaddyError(error)
     console.error('Error starting Caddy:', error)
     return false
   }
@@ -119,6 +171,7 @@ export async function reloadCaddy(): Promise<boolean> {
     await execAsync(
       `"${bin}" reload --config "${CADDY_CONFIG_PATH}" --adapter caddyfile`
     )
+    lastError = null
     return true
   } catch (error) {
     console.error('Error reloading Caddy:', error)
@@ -133,7 +186,7 @@ export async function updateCaddyConfig(domains: Domain[]): Promise<void> {
     await mkdir(CADDY_CONFIG_DIR, { recursive: true })
   }
 
-  const content = generateCaddyfile(domains)
+  const content = generateCaddyfile(domains, getHttpPort())
   await writeFile(CADDY_CONFIG_PATH, content, 'utf-8')
 
   const status = await getCaddyStatus()
@@ -142,17 +195,27 @@ export async function updateCaddyConfig(domains: Domain[]): Promise<void> {
   }
 }
 
-function generateCaddyfile(domains: Domain[]): string {
+function generateCaddyfile(domains: Domain[], httpPort: number): string {
   const lines: string[] = [
     '# D-Local Caddyfile',
     '# Auto-generated - Do not edit manually',
     ''
   ]
 
+  // A bare port suffix is only needed for non-standard ports; `http://foo.local`
+  // already implies :80 and keeps the URL clean.
+  const portSuffix = httpPort === 80 ? '' : `:${httpPort}`
+
   for (const domain of domains) {
     const fullDomain = `${domain.name}${domain.tld}`
+    // Use the http:// scheme so Caddy serves plain HTTP only. A bare site
+    // address (e.g. `foo.local {`) makes Caddy enable automatic HTTPS and bind
+    // port 443; on machines where another service already holds 443 (Tailscale,
+    // VPNs, etc.) Caddy fails to start with "address already in use" and no
+    // proxy runs. HTTP also avoids the self-signed cert trust prompts that
+    // `.local` HTTPS would otherwise require.
     lines.push(`# ${domain.name}`)
-    lines.push(`${fullDomain} {`)
+    lines.push(`http://${fullDomain}${portSuffix} {`)
     lines.push(`    reverse_proxy localhost:${domain.port}`)
     lines.push('}')
     lines.push('')

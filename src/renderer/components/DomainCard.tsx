@@ -1,17 +1,22 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDomainsStore, Domain } from '../store/domains'
-import { 
-  Play, 
-  Square, 
-  Globe, 
-  MoreVertical, 
-  Copy, 
-  Pencil, 
+import { useCaddyStore } from '../store/caddy'
+import { useTailscaleStore } from '../store/tailscale'
+import { TailscaleShareModal } from './TailscaleShareModal'
+import {
+  Play,
+  Square,
+  Globe,
+  MoreVertical,
+  Copy,
+  Pencil,
   Trash2,
   Terminal,
   FolderOpen,
-  Code
+  Code,
+  Smartphone,
+  Loader2
 } from 'lucide-react'
 
 interface DomainCardProps {
@@ -22,10 +27,50 @@ export function DomainCard({ domain }: DomainCardProps) {
   const { t } = useTranslation()
   const [showMenu, setShowMenu] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { startDomain, stopDomain, removeDomain } = useDomainsStore()
-  
+  const [showShare, setShowShare] = useState(false)
+  const [tsLoading, setTsLoading] = useState(false)
+  const [tsError, setTsError] = useState<string | null>(null)
+  const { startDomain, stopDomain, removeDomain, fetchDomains } = useDomainsStore()
+  const caddyStatus = useCaddyStore((s) => s.status)
+  const tailscaleStatus = useTailscaleStore((s) => s.status)
+  const serveTailscale = useTailscaleStore((s) => s.serve)
+  const unserveTailscale = useTailscaleStore((s) => s.unserve)
+
   const fullDomain = `${domain.name}${domain.tld}`
-  const url = `http://${fullDomain}`
+  const httpPort = caddyStatus?.httpPort ?? 80
+  const url = httpPort === 80 ? `http://${fullDomain}` : `http://${fullDomain}:${httpPort}`
+
+  // Three-state health: green = proxy up and backend up (reachable),
+  // yellow = proxy up but backend down (would 502), red = proxy (Caddy) down.
+  const caddyRunning = !!caddyStatus?.isRunning
+  const health = !caddyRunning
+    ? { dot: 'bg-destructive', label: t('domain.health.proxyDown') }
+    : domain.isRunning
+      ? { dot: 'bg-success', label: t('domain.health.reachable') }
+      : { dot: 'bg-warning', label: t('domain.health.backendDown') }
+
+  // Tailscale remote access (reachable from other tailnet devices, e.g. a phone).
+  const tailscaleReady = !!tailscaleStatus?.running
+  const tailnetUrl =
+    domain.tailscaleServe && tailscaleStatus?.dnsName && domain.tailscalePort
+      ? `https://${tailscaleStatus.dnsName}:${domain.tailscalePort}`
+      : null
+
+  const handleToggleTailscale = async () => {
+    setTsLoading(true)
+    setTsError(null)
+    try {
+      const result = domain.tailscaleServe
+        ? await unserveTailscale(domain.id)
+        : await serveTailscale(domain.id)
+      if (!result.ok) {
+        setTsError(result.error || t('tailscale.error'))
+      }
+      await fetchDomains()
+    } finally {
+      setTsLoading(false)
+    }
+  }
   
   const handleStart = async () => {
     setIsLoading(true)
@@ -78,9 +123,10 @@ export function DomainCard({ domain }: DomainCardProps) {
   }
   
   return (
-    <div className="group relative flex items-center gap-3 p-3 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors">
+    <div className="group relative bg-card border border-border rounded-lg hover:border-primary/50 transition-colors">
+      <div className="flex items-center gap-3 p-3">
       {/* Status indicator */}
-      <div className={`w-2 h-2 rounded-full ${domain.isRunning ? 'bg-success' : 'bg-muted'}`} />
+      <div className={`w-2 h-2 rounded-full ${health.dot}`} title={health.label} />
       
       {/* Domain info */}
       <div className="flex-1 min-w-0">
@@ -117,6 +163,16 @@ export function DomainCard({ domain }: DomainCardProps) {
           </button>
         )}
         
+        {tailnetUrl && (
+          <button
+            onClick={() => setShowShare(true)}
+            className="p-1.5 text-primary hover:bg-secondary rounded-md transition-colors"
+            title={t('tailscale.share')}
+          >
+            <Smartphone className="w-4 h-4" />
+          </button>
+        )}
+
         <button
           onClick={handleOpenBrowser}
           className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md transition-colors"
@@ -148,7 +204,24 @@ export function DomainCard({ domain }: DomainCardProps) {
                   <Copy className="w-4 h-4" />
                   {t('actions.copyUrl')}
                 </button>
-                
+
+                {tailscaleReady && (
+                  <button
+                    onClick={() => { handleToggleTailscale(); setShowMenu(false); }}
+                    disabled={tsLoading}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-secondary transition-colors disabled:opacity-50"
+                  >
+                    {tsLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Smartphone className="w-4 h-4" />
+                    )}
+                    {domain.tailscaleServe
+                      ? t('tailscale.stopExpose')
+                      : t('tailscale.expose')}
+                  </button>
+                )}
+
                 {domain.projectPath && (
                   <>
                     <button
@@ -199,6 +272,30 @@ export function DomainCard({ domain }: DomainCardProps) {
           )}
         </div>
       </div>
+      </div>
+
+      {tsError && (
+        <div className="px-3 pb-2 text-xs text-destructive">{tsError}</div>
+      )}
+
+      {tailnetUrl && (
+        <button
+          onClick={() => setShowShare(true)}
+          className="flex items-center gap-1.5 w-full px-3 pb-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          title={t('tailscale.share')}
+        >
+          <Smartphone className="w-3 h-3 shrink-0" />
+          <span className="truncate font-mono">{tailnetUrl}</span>
+        </button>
+      )}
+
+      {showShare && tailnetUrl && (
+        <TailscaleShareModal
+          url={tailnetUrl}
+          domain={fullDomain}
+          onClose={() => setShowShare(false)}
+        />
+      )}
     </div>
   )
 }

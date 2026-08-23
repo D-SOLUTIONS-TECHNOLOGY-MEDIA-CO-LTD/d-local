@@ -37,6 +37,11 @@ const resources = {
         status: {
           running: 'Running',
           stopped: 'Stopped'
+        },
+        health: {
+          reachable: 'Reachable',
+          backendDown: 'Backend not running (will return 502)',
+          proxyDown: 'Caddy is not running'
         }
       },
       scanner: {
@@ -80,6 +85,8 @@ const resources = {
         startMinimized: 'Start minimized to menu bar',
         notifications: 'Show notifications',
         defaultTld: 'Default TLD',
+        httpPort: 'HTTP port',
+        httpPortHelp: 'Port Caddy serves domains on (default 80). Change if 80 is occupied; applies after Caddy restarts.',
         portRange: 'Port scan range',
         claudeCodePath: 'Claude Code path',
         claudeCodePathHelp: 'Path to the claude binary for "Open in Claude Code" feature',
@@ -93,7 +100,18 @@ const resources = {
         notInstalled: 'Not Installed',
         install: 'Install Caddy',
         installing: 'Installing...',
-        restart: 'Restart Caddy'
+        restart: 'Restart Caddy',
+        portConflict: 'Port {{port}} in use by {{command}} (pid {{pid}})',
+        repair: 'Repair',
+        repairing: 'Repairing...'
+      },
+      tailscale: {
+        expose: 'Expose to my devices',
+        stopExpose: 'Stop exposing',
+        share: 'Open on another device',
+        shareTitle: 'Open on another device',
+        shareHint: 'Scan with a device signed in to your tailnet to open {{domain}}.',
+        error: 'Tailscale action failed'
       },
       errors: {
         nameRequired: 'Domain name is required',
@@ -139,6 +157,11 @@ const resources = {
         status: {
           running: 'Đang chạy',
           stopped: 'Đã dừng'
+        },
+        health: {
+          reachable: 'Truy cập được',
+          backendDown: 'Backend chưa chạy (sẽ báo 502)',
+          proxyDown: 'Caddy chưa chạy'
         }
       },
       scanner: {
@@ -182,6 +205,8 @@ const resources = {
         startMinimized: 'Khởi động thu nhỏ vào menu bar',
         notifications: 'Hiển thị thông báo',
         defaultTld: 'TLD mặc định',
+        httpPort: 'Cổng HTTP',
+        httpPortHelp: 'Cổng Caddy phục vụ domain (mặc định 80). Đổi khi 80 bị chiếm; áp dụng sau khi Caddy khởi động lại.',
         portRange: 'Phạm vi quét ports',
         claudeCodePath: 'Đường dẫn Claude Code',
         claudeCodePathHelp: 'Đường dẫn tới file claude cho tính năng "Mở trong Claude Code"',
@@ -195,7 +220,18 @@ const resources = {
         notInstalled: 'Chưa cài đặt',
         install: 'Cài đặt Caddy',
         installing: 'Đang cài đặt...',
-        restart: 'Khởi động lại Caddy'
+        restart: 'Khởi động lại Caddy',
+        portConflict: 'Cổng {{port}} bị {{command}} chiếm (pid {{pid}})',
+        repair: 'Sửa nhanh',
+        repairing: 'Đang sửa...'
+      },
+      tailscale: {
+        expose: 'Mở cho thiết bị của tôi',
+        stopExpose: 'Ngừng chia sẻ',
+        share: 'Mở trên thiết bị khác',
+        shareTitle: 'Mở trên thiết bị khác',
+        shareHint: 'Quét bằng thiết bị đã đăng nhập cùng tailnet để mở {{domain}}.',
+        error: 'Thao tác Tailscale thất bại'
       },
       errors: {
         nameRequired: 'Tên domain là bắt buộc',
