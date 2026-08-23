@@ -18,6 +18,10 @@ export interface Domain {
   env?: Record<string, string>
   autoStart: boolean
   openBrowserOnStart: boolean
+  // Tailscale Serve: expose this domain's port to the tailnet for remote access.
+  tailscaleServe?: boolean
+  // Dedicated HTTPS port assigned for the Tailscale mapping (persisted once set).
+  tailscalePort?: number
   isRunning?: boolean
   pid?: number
   createdAt: Date

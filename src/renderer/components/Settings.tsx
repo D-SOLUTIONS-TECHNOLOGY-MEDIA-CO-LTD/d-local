@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useConfigStore } from '../store/config'
+import { useCaddyStore } from '../store/caddy'
 import { X, Upload, Download } from 'lucide-react'
 
 interface SettingsProps {
@@ -12,8 +13,14 @@ type Tab = 'general' | 'appearance' | 'ports' | 'integration'
 export function Settings({ onClose }: SettingsProps) {
   const { t, i18n } = useTranslation()
   const { config, updateConfig, exportConfig, importConfig } = useConfigStore()
-  
+  const repairCaddy = useCaddyStore((s) => s.repairCaddy)
+
   const [activeTab, setActiveTab] = useState<Tab>('general')
+
+  // Apply an HTTP port change by regenerating the Caddyfile and restarting Caddy.
+  const applyHttpPort = () => {
+    repairCaddy()
+  }
   
   const handleLanguageChange = async (language: 'en' | 'vi') => {
     await i18n.changeLanguage(language)
@@ -198,6 +205,24 @@ export function Settings({ onClose }: SettingsProps) {
                   </select>
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('settings.httpPort')}
+                  </label>
+                  <input
+                    type="number"
+                    value={config?.httpPort ?? 80}
+                    onChange={(e) => updateConfig({ httpPort: parseInt(e.target.value, 10) || 80 })}
+                    onBlur={applyHttpPort}
+                    min="1"
+                    max="65535"
+                    className="w-24 px-3 py-2 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('settings.httpPortHelp')}
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     {t('settings.portRange')}

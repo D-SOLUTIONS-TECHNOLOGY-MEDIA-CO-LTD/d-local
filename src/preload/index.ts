@@ -23,9 +23,17 @@ contextBridge.exposeInMainWorld('api', {
     start: () => ipcRenderer.invoke('caddy:start'),
     stop: () => ipcRenderer.invoke('caddy:stop'),
     reload: () => ipcRenderer.invoke('caddy:reload'),
-    install: () => ipcRenderer.invoke('caddy:install')
+    install: () => ipcRenderer.invoke('caddy:install'),
+    repair: () => ipcRenderer.invoke('caddy:repair')
   },
   
+  // Tailscale operations
+  tailscale: {
+    status: () => ipcRenderer.invoke('tailscale:status'),
+    serve: (id: string) => ipcRenderer.invoke('tailscale:serve', id),
+    unserve: (id: string) => ipcRenderer.invoke('tailscale:unserve', id)
+  },
+
   // Config operations
   config: {
     get: () => ipcRenderer.invoke('config:get'),
@@ -82,6 +90,12 @@ declare global {
         stop: () => Promise<boolean>
         reload: () => Promise<boolean>
         install: () => Promise<string>
+        repair: () => Promise<{ ok: boolean; error?: string }>
+      }
+      tailscale: {
+        status: () => Promise<{ installed: boolean; running: boolean; dnsName?: string }>
+        serve: (id: string) => Promise<{ ok: boolean; url?: string; error?: string }>
+        unserve: (id: string) => Promise<{ ok: boolean; url?: string; error?: string }>
       }
       config: {
         get: () => Promise<any>
