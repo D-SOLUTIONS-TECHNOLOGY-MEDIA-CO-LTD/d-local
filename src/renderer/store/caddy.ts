@@ -1,10 +1,18 @@
 import { create } from 'zustand'
 
+export interface PortOwner {
+  pid: number
+  command: string
+}
+
 export interface CaddyStatus {
   isRunning: boolean
   isInstalled: boolean
   pid?: number
   version?: string
+  httpPort: number
+  lastError?: string | null
+  portConflict?: PortOwner | null
 }
 
 interface CaddyState {
@@ -18,6 +26,7 @@ interface CaddyState {
   stopCaddy: () => Promise<boolean>
   reloadCaddy: () => Promise<boolean>
   installCaddy: () => Promise<boolean>
+  repairCaddy: () => Promise<boolean>
 }
 
 export const useCaddyStore = create<CaddyState>((set, get) => ({
@@ -39,9 +48,8 @@ export const useCaddyStore = create<CaddyState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const success = await window.api.caddy.start()
-      if (success) {
-        await get().fetchStatus()
-      }
+      // Always refresh so a failed start surfaces lastError/portConflict.
+      await get().fetchStatus()
       set({ isLoading: false })
       return success
     } catch (error: any) {
@@ -89,6 +97,19 @@ export const useCaddyStore = create<CaddyState>((set, get) => ({
       return true
     } catch (error: any) {
       set({ error: error.message, isInstalling: false })
+      return false
+    }
+  },
+
+  repairCaddy: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const result = await window.api.caddy.repair()
+      await get().fetchStatus()
+      set({ isLoading: false, error: result.ok ? null : (result.error ?? null) })
+      return result.ok
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false })
       return false
     }
   }

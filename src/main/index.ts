@@ -3,11 +3,30 @@ import { join } from "path";
 import { initializeIpcHandlers } from "./ipc";
 import { createTray } from "./tray";
 import { isQuitting, setQuitting } from "./app-state";
+import { getCaddyStatus, startCaddy } from "./services/caddy";
+import { getDomains } from "./services/domains";
 
 // Simple dev check
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
 let mainWindow: BrowserWindow | null = null;
+
+/**
+ * Start Caddy on launch so mapped domains work immediately, without the user
+ * having to toggle it. No-ops if Caddy isn't installed, is already running, or
+ * there are no domains. Failures are non-fatal (surfaced later in the UI).
+ */
+async function autoStartCaddy(): Promise<void> {
+  try {
+    const status = await getCaddyStatus();
+    if (!status.isInstalled || status.isRunning) return;
+    const domains = await getDomains();
+    if (domains.length === 0) return;
+    await startCaddy();
+  } catch (error) {
+    console.error("Auto-start Caddy failed:", error);
+  }
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -78,6 +97,9 @@ if (!gotTheLock) {
 
     // Initialize IPC handlers
     initializeIpcHandlers();
+
+    // Start Caddy in the background so domains are reachable right away.
+    autoStartCaddy();
 
     // Create main window
     createWindow();

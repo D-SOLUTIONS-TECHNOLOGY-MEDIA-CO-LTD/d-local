@@ -8,6 +8,7 @@ import { Settings } from './components/Settings'
 import { useDomainsStore } from './store/domains'
 import { useCaddyStore } from './store/caddy'
 import { useConfigStore } from './store/config'
+import { useTailscaleStore } from './store/tailscale'
 import { Search, Plus, RefreshCw, Settings as SettingsIcon } from 'lucide-react'
 
 function App() {
@@ -20,12 +21,14 @@ function App() {
   const { fetchDomains, isLoading: domainsLoading } = useDomainsStore()
   const { fetchStatus } = useCaddyStore()
   const { fetchConfig, config } = useConfigStore()
-  
+  const { fetchStatus: fetchTailscale } = useTailscaleStore()
+
   useEffect(() => {
     // Initial fetch
     fetchDomains()
     fetchStatus()
     fetchConfig()
+    fetchTailscale()
     
     // Listen for events from tray
     window.api.on('open-port-scanner', () => setShowScanner(true))
