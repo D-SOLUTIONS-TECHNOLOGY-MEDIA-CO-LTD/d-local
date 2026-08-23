@@ -58,6 +58,9 @@ Save start commands for each project. Start your entire dev environment with one
 ### 🖥️ Menu Bar Quick Access
 Access all your domains from the menu bar. Start, stop, or open in browser instantly.
 
+### 📱 Remote Access via Tailscale
+Expose any local project to your other devices — like your phone — over your tailnet, with a QR code to open it instantly. Uses a dedicated HTTPS port, so it coexists with an existing Tailscale Serve setup.
+
 ### 🤖 Claude Code Integration
 Seamlessly integrate with Claude Code workflow. Open projects directly in Claude Code from the app.
 
@@ -100,7 +103,7 @@ pnpm build
 
 ### Prerequisites
 
-D-Local requires [Caddy](https://caddyserver.com/) as the reverse proxy:
+D-Local uses [Caddy](https://caddyserver.com/) as the reverse proxy. It **auto-downloads** Caddy on first run if it isn't found, or you can install it yourself:
 
 ```bash
 brew install caddy
@@ -138,6 +141,16 @@ Your project is now accessible at `http://my-project.local`
 | Copy URL | Right-click → Copy URL or `⌘ + C` |
 | Edit domain | Right-click → Edit |
 | Remove domain | Right-click → Remove |
+
+### Access from Your Phone (Tailscale)
+
+If [Tailscale](https://tailscale.com/) is installed and connected:
+
+1. Right-click a domain → **Expose to my devices**
+2. Click the 📱 icon to show a QR code
+3. Scan it with a device signed in to the same tailnet
+
+D-Local serves each exposed domain on a dedicated HTTPS port (18443+), leaving any existing Tailscale Serve config untouched.
 
 ### Menu Bar
 
