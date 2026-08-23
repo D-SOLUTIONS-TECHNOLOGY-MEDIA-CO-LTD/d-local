@@ -3,6 +3,9 @@ dist/
 out/
 *.tsbuildinfo
 
+# Local planning/working notes — not part of the public repo
+plans/
+
 .DS_Store
 Thumbs.db
 
