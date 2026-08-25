@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDomainsStore } from '../store/domains'
+import { useDomainsStore, Domain } from '../store/domains'
 import { useConfigStore } from '../store/config'
 import { X, FolderOpen } from 'lucide-react'
 
@@ -11,23 +11,33 @@ interface AddDomainModalProps {
     port?: number
     projectPath?: string
   }
+  // When provided, the modal edits an existing domain instead of adding a new one.
+  domain?: Domain
 }
 
-export function AddDomainModal({ onClose, initialData }: AddDomainModalProps) {
+export function AddDomainModal({ onClose, initialData, domain }: AddDomainModalProps) {
   const { t } = useTranslation()
-  const { addDomain } = useDomainsStore()
+  const { addDomain, updateDomain } = useDomainsStore()
   const { config } = useConfigStore()
-  
-  const [name, setName] = useState(initialData?.name || '')
-  const [port, setPort] = useState(initialData?.port?.toString() || '')
-  const [projectPath, setProjectPath] = useState(initialData?.projectPath || '')
-  const [startCommand, setStartCommand] = useState('')
-  const [autoStart, setAutoStart] = useState(false)
-  const [openBrowserOnStart, setOpenBrowserOnStart] = useState(false)
+
+  const isEditing = !!domain
+
+  const [name, setName] = useState(domain?.name || initialData?.name || '')
+  const [port, setPort] = useState(
+    (domain?.port ?? initialData?.port)?.toString() || ''
+  )
+  const [projectPath, setProjectPath] = useState(
+    domain?.projectPath || initialData?.projectPath || ''
+  )
+  const [startCommand, setStartCommand] = useState(domain?.startCommand || '')
+  const [autoStart, setAutoStart] = useState(domain?.autoStart ?? false)
+  const [openBrowserOnStart, setOpenBrowserOnStart] = useState(
+    domain?.openBrowserOnStart ?? false
+  )
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  
-  const tld = config?.defaultTld || '.local'
+
+  const tld = domain?.tld || config?.defaultTld || '.local'
   
   const handleSelectFolder = async () => {
     const path = await window.api.system.selectDirectory()
@@ -74,17 +84,29 @@ export function AddDomainModal({ onClose, initialData }: AddDomainModalProps) {
     }
     
     setIsLoading(true)
-    
+
     try {
-      await addDomain({
-        name: name.trim(),
-        tld,
-        port: portNum,
-        projectPath: projectPath || undefined,
-        startCommand: startCommand || undefined,
-        autoStart,
-        openBrowserOnStart
-      })
+      if (isEditing) {
+        await updateDomain(domain!.id, {
+          name: name.trim(),
+          tld,
+          port: portNum,
+          projectPath: projectPath || undefined,
+          startCommand: startCommand || undefined,
+          autoStart,
+          openBrowserOnStart
+        })
+      } else {
+        await addDomain({
+          name: name.trim(),
+          tld,
+          port: portNum,
+          projectPath: projectPath || undefined,
+          startCommand: startCommand || undefined,
+          autoStart,
+          openBrowserOnStart
+        })
+      }
       onClose()
     } catch (err: any) {
       setError(err.message || t('errors.unknown'))
@@ -105,7 +127,7 @@ export function AddDomainModal({ onClose, initialData }: AddDomainModalProps) {
       <div className="relative w-full max-w-md bg-background border border-border rounded-xl shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-lg font-semibold">{t('domain.add')}</h2>
+          <h2 className="text-lg font-semibold">{isEditing ? t('domain.edit') : t('domain.add')}</h2>
           <button
             onClick={onClose}
             className="p-1 text-muted-foreground hover:text-foreground rounded-md transition-colors"
@@ -230,7 +252,7 @@ export function AddDomainModal({ onClose, initialData }: AddDomainModalProps) {
               disabled={isLoading}
               className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {isLoading ? t('common.loading') : t('domain.add')}
+              {isLoading ? t('common.loading') : isEditing ? t('actions.save') : t('domain.add')}
             </button>
           </div>
         </form>

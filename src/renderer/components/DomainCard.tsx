@@ -4,6 +4,7 @@ import { useDomainsStore, Domain } from '../store/domains'
 import { useCaddyStore } from '../store/caddy'
 import { useTailscaleStore } from '../store/tailscale'
 import { TailscaleShareModal } from './TailscaleShareModal'
+import { AddDomainModal } from './AddDomainModal'
 import {
   Play,
   Square,
@@ -28,6 +29,7 @@ export function DomainCard({ domain }: DomainCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
   const [tsLoading, setTsLoading] = useState(false)
   const [tsError, setTsError] = useState<string | null>(null)
   const { startDomain, stopDomain, removeDomain, fetchDomains } = useDomainsStore()
@@ -253,7 +255,7 @@ export function DomainCard({ domain }: DomainCardProps) {
                 <div className="border-t border-border my-1" />
                 
                 <button
-                  onClick={() => { setShowMenu(false); }}
+                  onClick={() => { setShowEdit(true); setShowMenu(false); }}
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-secondary transition-colors"
                 >
                   <Pencil className="w-4 h-4" />
@@ -294,6 +296,13 @@ export function DomainCard({ domain }: DomainCardProps) {
           url={tailnetUrl}
           domain={fullDomain}
           onClose={() => setShowShare(false)}
+        />
+      )}
+
+      {showEdit && (
+        <AddDomainModal
+          domain={domain}
+          onClose={() => setShowEdit(false)}
         />
       )}
     </div>
